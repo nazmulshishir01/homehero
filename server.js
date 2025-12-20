@@ -244,3 +244,32 @@ app.listen(port, () => {
         res.status(500).send({ error: true, message: "Failed to delete service" });
       }
     });
+
+    // ============ BOOKINGS ROUTES ============
+
+    // Get all bookings for a user (Protected)
+    app.get("/bookings", verifyJWT, async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        // Verify that the user is requesting their own bookings
+        if (req.decoded.email !== email) {
+          return res.status(403).send({ error: true, message: "Forbidden access" });
+        }
+
+        const query = { userEmail: email };
+        const bookings = await bookingsCollection.find(query).toArray();
+
+        // Populate service details for each booking
+        for (let booking of bookings) {
+          const service = await servicesCollection.findOne({
+            _id: new ObjectId(booking.serviceId),
+          });
+          booking.service = service;
+        }
+
+        res.send(bookings);
+      } catch (error) {
+        res.status(500).send({ error: true, message: "Failed to fetch bookings" });
+      }
+    });

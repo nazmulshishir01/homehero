@@ -273,3 +273,63 @@ app.listen(port, () => {
         res.status(500).send({ error: true, message: "Failed to fetch bookings" });
       }
     });
+
+    // Create new booking (Protected)
+    app.post("/bookings", verifyJWT, async (req, res) => {
+      try {
+        const booking = req.body;
+
+        // Check if user is trying to book their own service
+        const service = await servicesCollection.findOne({
+          _id: new ObjectId(booking.serviceId),
+        });
+
+        if (service.providerEmail === booking.userEmail) {
+          return res.status(400).send({
+            error: true,
+            message: "You cannot book your own service",
+          });
+        }
+
+        // Check for duplicate booking
+        const existingBooking = await bookingsCollection.findOne({
+          userEmail: booking.userEmail,
+          serviceId: booking.serviceId,
+          status: { $ne: "cancelled" },
+        });
+
+        if (existingBooking) {
+          return res.status(400).send({
+            error: true,
+            message: "You have already booked this service",
+          });
+        }
+
+        booking.createdAt = new Date();
+        booking.status = "pending";
+
+        const result = await bookingsCollection.insertOne(booking);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: true, message: "Failed to create booking" });
+      }
+    });
+
+    // Cancel booking (Protected)
+    app.delete("/bookings/:id", verifyJWT, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const email = req.query.email;
+
+        // Verify ownership
+        const booking = await bookingsCollection.findOne({ _id: new ObjectId(id) });
+        if (!booking || booking.userEmail !== email) {
+          return res.status(403).send({ error: true, message: "Forbidden access" });
+        }
+
+        const result = await bookingsCollection.deleteOne({ _id: new ObjectId(id) });
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: true, message: "Failed to cancel booking" });
+      }
+    });

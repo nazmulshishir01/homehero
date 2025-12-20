@@ -177,3 +177,20 @@ app.listen(port, () => {
         res.status(500).send({ error: true, message: "Failed to fetch services" });
       }
     });
+
+    // Add new service (Protected)
+    app.post("/services", verifyJWT, async (req, res) => {
+      try {
+        const service = req.body;
+
+        // Add timestamp and initial rating
+        service.createdAt = new Date();
+        service.averageRating = 4.5; // Default rating for new services
+        service.reviews = [];
+
+        const result = await servicesCollection.insertOne(service);
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: true, message: "Failed to add service" });
+      }
+    });

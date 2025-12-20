@@ -198,6 +198,11 @@ app.post("/services", verifyJWT, async (req, res) => {
     service.createdAt = new Date();
     service.averageRating = 4.5;
     service.reviews = [];
+    
+    // Set default image if not provided
+    if (!service.imageUrl) {
+      service.imageUrl = "https://placehold.co/400x300?text=Service+Image";
+    }
 
     const result = await servicesCollection.insertOne(service);
     res.send(result);

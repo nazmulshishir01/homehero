@@ -78,3 +78,56 @@ run().catch(console.dir);
 app.listen(port, () => {
   console.log(`HomeHero Server is running on port ${port}`);
 });
+
+// ============ SERVICES ROUTES ============
+
+    // Get all services with optional filters
+    app.get("/services", async (req, res) => {
+      try {
+        const { limit, category, minPrice, maxPrice, search, sortBy } = req.query;
+        let query = {};
+
+        // Category filter
+        if (category && category !== "all") {
+          query.category = category;
+        }
+
+        // Price range filter
+        if (minPrice || maxPrice) {
+          query.price = {};
+          if (minPrice) query.price.$gte = parseFloat(minPrice);
+          if (maxPrice) query.price.$lte = parseFloat(maxPrice);
+        }
+
+        // Search filter (case-insensitive)
+        if (search) {
+          query.$or = [
+            { serviceName: { $regex: search, $options: "i" } },
+            { category: { $regex: search, $options: "i" } },
+            { description: { $regex: search, $options: "i" } },
+          ];
+        }
+
+        // Build query
+        let cursor = servicesCollection.find(query);
+
+        // Sorting
+        if (sortBy === "price-asc") {
+          cursor = cursor.sort({ price: 1 });
+        } else if (sortBy === "price-desc") {
+          cursor = cursor.sort({ price: -1 });
+        } else if (sortBy === "rating") {
+          cursor = cursor.sort({ averageRating: -1 });
+        }
+
+        // Limit results
+        if (limit) {
+          cursor = cursor.limit(parseInt(limit));
+        }
+
+        const services = await cursor.toArray();
+        res.send(services);
+      } catch (error) {
+        res.status(500).send({ error: true, message: "Failed to fetch services" });
+      }
+    });

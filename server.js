@@ -1,4 +1,4 @@
-
+// server.js - Main backend server file
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -8,16 +8,16 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-
+// MongoDB URI - Using your cluster URL
 const uri =
   process.env.MONGO_URI ||
   `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gvkve05.mongodb.net/homeheroDB?retryWrites=true&w=majority&appName=Cluster0`;
 
-
+// Create MongoDB client
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -26,7 +26,7 @@ const client = new MongoClient(uri, {
   },
 });
 
-
+// JWT Middleware
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
   if (!authorization) {
@@ -47,17 +47,17 @@ const verifyJWT = (req, res, next) => {
 
 async function run() {
   try {
-    
+    // Connect to MongoDB
     await client.connect();
     console.log("Connected to MongoDB!");
 
-    
+    // Database and Collections
     const database = client.db("homeHeroDB");
     const servicesCollection = database.collection("services");
     const bookingsCollection = database.collection("bookings");
     const reviewsCollection = database.collection("reviews");
 
-    
+    // JWT Token Generation
     app.post("/jwt", (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
@@ -73,7 +73,7 @@ async function run() {
           req.query;
         let query = {};
 
-        
+       
         if (category && category !== "all") {
           query.category = category;
         }
@@ -106,7 +106,7 @@ async function run() {
           cursor = cursor.sort({ averageRating: -1 });
         }
 
-       
+        
         if (limit) {
           cursor = cursor.limit(parseInt(limit));
         }
@@ -120,6 +120,7 @@ async function run() {
       }
     });
 
+    
     app.get("/services/:id", async (req, res) => {
       try {
         const id = req.params.id;
@@ -163,12 +164,12 @@ async function run() {
       }
     });
 
-    
+   
     app.post("/services", verifyJWT, async (req, res) => {
       try {
         const service = req.body;
 
-       
+        
         service.createdAt = new Date();
         service.averageRating = 4.5; 
         service.reviews = [];
@@ -197,7 +198,7 @@ async function run() {
             .send({ error: true, message: "Forbidden access" });
         }
 
-        delete updateData._id; // Remove _id from update data
+        delete updateData._id; 
         updateData.updatedAt = new Date();
 
         const result = await servicesCollection.updateOne(
@@ -219,7 +220,7 @@ async function run() {
         const id = req.params.id;
         const email = req.query.email;
 
-       
+        
         const service = await servicesCollection.findOne({
           _id: new ObjectId(id),
         });
@@ -248,7 +249,7 @@ async function run() {
       try {
         const email = req.query.email;
 
-       
+        
         if (req.decoded.email !== email) {
           return res
             .status(403)
@@ -274,7 +275,7 @@ async function run() {
       }
     });
 
-   
+    
     app.post("/bookings", verifyJWT, async (req, res) => {
       try {
         const booking = req.body;
@@ -323,7 +324,7 @@ async function run() {
         const id = req.params.id;
         const email = req.query.email;
 
-        
+       
         const booking = await bookingsCollection.findOne({
           _id: new ObjectId(id),
         });
@@ -345,7 +346,6 @@ async function run() {
     });
 
     
-
     app.post("/services/:id/review", verifyJWT, async (req, res) => {
       try {
         const serviceId = req.params.id;
@@ -366,7 +366,7 @@ async function run() {
           });
         }
 
-        
+       
         const service = await servicesCollection.findOne({
           _id: new ObjectId(serviceId),
         });
@@ -389,6 +389,7 @@ async function run() {
           date: new Date(),
         };
 
+        
         const updatedService = await servicesCollection.findOneAndUpdate(
           { _id: new ObjectId(serviceId) },
           {
@@ -397,7 +398,7 @@ async function run() {
           { returnDocument: "after" }
         );
 
-       
+        
         if (
           updatedService.value.reviews &&
           updatedService.value.reviews.length > 0

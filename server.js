@@ -159,3 +159,21 @@ app.listen(port, () => {
         res.status(500).send({ error: true, message: "Failed to fetch categories" });
       }
     });
+
+    // Get services by provider email (Protected)
+    app.get("/my-services", verifyJWT, async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        // Verify that the user is requesting their own services
+        if (req.decoded.email !== email) {
+          return res.status(403).send({ error: true, message: "Forbidden access" });
+        }
+
+        const query = { providerEmail: email };
+        const services = await servicesCollection.find(query).toArray();
+        res.send(services);
+      } catch (error) {
+        res.status(500).send({ error: true, message: "Failed to fetch services" });
+      }
+    });

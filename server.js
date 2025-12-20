@@ -131,3 +131,31 @@ app.listen(port, () => {
         res.status(500).send({ error: true, message: "Failed to fetch services" });
       }
     });
+
+    // Get single service by ID
+    app.get("/services/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const service = await servicesCollection.findOne(query);
+
+        if (!service) {
+          return res.status(404).send({ error: true, message: "Service not found" });
+        }
+
+        res.send(service);
+      } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send({ error: true, message: "Failed to fetch service" });
+      }
+    });
+
+    // Get categories
+    app.get("/categories", async (req, res) => {
+      try {
+        const categories = await servicesCollection.distinct("category");
+        res.send(categories);
+      } catch (error) {
+        res.status(500).send({ error: true, message: "Failed to fetch categories" });
+      }
+    });

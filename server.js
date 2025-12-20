@@ -194,3 +194,53 @@ app.listen(port, () => {
         res.status(500).send({ error: true, message: "Failed to add service" });
       }
     });
+
+
+    // Update service (Protected)
+    app.patch("/services/:id", verifyJWT, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updateData = req.body;
+        const email = req.query.email;
+
+        // Verify ownership
+        const service = await servicesCollection.findOne({ _id: new ObjectId(id) });
+        if (!service || service.providerEmail !== email) {
+          return res.status(403).send({ error: true, message: "Forbidden access" });
+        }
+
+        delete updateData._id; // Remove _id from update data
+        updateData.updatedAt = new Date();
+
+        const result = await servicesCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updateData }
+        );
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: true, message: "Failed to update service" });
+      }
+    });
+
+    // Delete service (Protected)
+    app.delete("/services/:id", verifyJWT, async (req, res) => {
+      try {
+        const id = req.params.id;
+        const email = req.query.email;
+
+        // Verify ownership
+        const service = await servicesCollection.findOne({ _id: new ObjectId(id) });
+        if (!service || service.providerEmail !== email) {
+          return res.status(403).send({ error: true, message: "Forbidden access" });
+        }
+
+        // Delete related bookings
+        await bookingsCollection.deleteMany({ serviceId: id });
+
+        const result = await servicesCollection.deleteOne({ _id: new ObjectId(id) });
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ error: true, message: "Failed to delete service" });
+      }
+    });

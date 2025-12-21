@@ -4,7 +4,10 @@ HomeHero - Local Household Service Finder application. Built with Node.js, Expre
 
 ## 🌐 Website Live URL & Vercel 
 
-[https://homehero-five.vercel.app] (https://homehero-five.vercel.app)
+#Vercel
+https://homehero-five.vercel.app 
+
+live URL
 [https://homehero-bd.web.app](https://homehero-bd.web.app)
 
 

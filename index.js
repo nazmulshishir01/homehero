@@ -1,4 +1,4 @@
-// index.js - HomeHero Backend Server (Vercel Compatible)
+
 const express = require("express");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
@@ -8,7 +8,7 @@ require("dotenv").config();
 const app = express();
 const port = process.env.PORT || 5000;
 
-// CORS Configuration
+
 app.use(
   cors({
     origin: [
@@ -25,10 +25,10 @@ app.use(
 
 app.use(express.json());
 
-// MongoDB URI
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.gvkve05.mongodb.net/homeHeroDB?retryWrites=true&w=majority&appName=Cluster0`;
 
-// Create MongoDB client
+
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -37,11 +37,11 @@ const client = new MongoClient(uri, {
   },
 });
 
-// Database collections
+
 let servicesCollection;
 let bookingsCollection;
 
-// Connect to MongoDB
+
 async function connectDB() {
   try {
     if (!servicesCollection) {
@@ -56,7 +56,7 @@ async function connectDB() {
   }
 }
 
-// JWT Middleware
+
 const verifyJWT = (req, res, next) => {
   const authorization = req.headers.authorization;
   if (!authorization) {
@@ -75,14 +75,12 @@ const verifyJWT = (req, res, next) => {
   });
 };
 
-// ============ ROUTES ============
 
-// Health check - Root route
 app.get("/", (req, res) => {
   res.send("HomeHero Server is running!");
 });
 
-// JWT Token Generation
+
 app.post("/jwt", (req, res) => {
   const user = req.body;
   const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
@@ -91,28 +89,26 @@ app.post("/jwt", (req, res) => {
   res.send({ token });
 });
 
-// ============ SERVICES ROUTES ============
 
-// Get all services with optional filters
 app.get("/services", async (req, res) => {
   try {
     await connectDB();
     const { limit, category, minPrice, maxPrice, search, sortBy } = req.query;
     let query = {};
 
-    // Category filter
+   
     if (category && category !== "all") {
       query.category = category;
     }
 
-    // Price range filter
+   
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = parseFloat(minPrice);
       if (maxPrice) query.price.$lte = parseFloat(maxPrice);
     }
 
-    // Search filter (case-insensitive)
+   
     if (search) {
       query.$or = [
         { serviceName: { $regex: search, $options: "i" } },
@@ -121,10 +117,10 @@ app.get("/services", async (req, res) => {
       ];
     }
 
-    // Build query
+    
     let cursor = servicesCollection.find(query);
 
-    // Sorting
+    
     if (sortBy === "price-asc") {
       cursor = cursor.sort({ price: 1 });
     } else if (sortBy === "price-desc") {
@@ -133,7 +129,7 @@ app.get("/services", async (req, res) => {
       cursor = cursor.sort({ averageRating: -1 });
     }
 
-    // Limit results
+    
     if (limit) {
       cursor = cursor.limit(parseInt(limit));
     }
@@ -146,7 +142,7 @@ app.get("/services", async (req, res) => {
   }
 });
 
-// Get single service by ID
+
 app.get("/services/:id", async (req, res) => {
   try {
     await connectDB();
@@ -167,13 +163,13 @@ app.get("/services/:id", async (req, res) => {
   }
 });
 
-// Get services by provider email (Protected)
+
 app.get("/my-services", verifyJWT, async (req, res) => {
   try {
     await connectDB();
     const email = req.query.email;
 
-    // Verify that the user is requesting their own services
+
     if (req.decoded.email !== email) {
       return res
         .status(403)
@@ -188,18 +184,18 @@ app.get("/my-services", verifyJWT, async (req, res) => {
   }
 });
 
-// Add new service (Protected)
+
 app.post("/services", verifyJWT, async (req, res) => {
   try {
     await connectDB();
     const service = req.body;
 
-    // Add timestamp and initial rating
+    
     service.createdAt = new Date();
     service.averageRating = 4.5;
     service.reviews = [];
     
-    // Set default image if not provided
+   
     if (!service.imageUrl) {
       service.imageUrl = "https://placehold.co/400x300?text=Service+Image";
     }
@@ -211,7 +207,7 @@ app.post("/services", verifyJWT, async (req, res) => {
   }
 });
 
-// Update service (Protected)
+
 app.patch("/services/:id", verifyJWT, async (req, res) => {
   try {
     await connectDB();
@@ -219,7 +215,7 @@ app.patch("/services/:id", verifyJWT, async (req, res) => {
     const updateData = req.body;
     const email = req.query.email;
 
-    // Verify ownership
+    
     const service = await servicesCollection.findOne({
       _id: new ObjectId(id),
     });
@@ -243,14 +239,14 @@ app.patch("/services/:id", verifyJWT, async (req, res) => {
   }
 });
 
-// Delete service (Protected)
+
 app.delete("/services/:id", verifyJWT, async (req, res) => {
   try {
     await connectDB();
     const id = req.params.id;
     const email = req.query.email;
 
-    // Verify ownership
+    
     const service = await servicesCollection.findOne({
       _id: new ObjectId(id),
     });
@@ -260,7 +256,7 @@ app.delete("/services/:id", verifyJWT, async (req, res) => {
         .send({ error: true, message: "Forbidden access" });
     }
 
-    // Delete related bookings
+    
     await bookingsCollection.deleteMany({ serviceId: id });
 
     const result = await servicesCollection.deleteOne({
@@ -272,15 +268,12 @@ app.delete("/services/:id", verifyJWT, async (req, res) => {
   }
 });
 
-// ============ BOOKINGS ROUTES ============
-
-// Get all bookings for a user (Protected)
 app.get("/bookings", verifyJWT, async (req, res) => {
   try {
     await connectDB();
     const email = req.query.email;
 
-    // Verify that the user is requesting their own bookings
+    
     if (req.decoded.email !== email) {
       return res
         .status(403)
@@ -290,7 +283,7 @@ app.get("/bookings", verifyJWT, async (req, res) => {
     const query = { userEmail: email };
     const bookings = await bookingsCollection.find(query).toArray();
 
-    // Populate service details for each booking
+    
     for (let booking of bookings) {
       const service = await servicesCollection.findOne({
         _id: new ObjectId(booking.serviceId),
@@ -304,13 +297,13 @@ app.get("/bookings", verifyJWT, async (req, res) => {
   }
 });
 
-// Create new booking (Protected)
+
 app.post("/bookings", verifyJWT, async (req, res) => {
   try {
     await connectDB();
     const booking = req.body;
 
-    // Check if user is trying to book their own service
+    
     const service = await servicesCollection.findOne({
       _id: new ObjectId(booking.serviceId),
     });
@@ -322,7 +315,7 @@ app.post("/bookings", verifyJWT, async (req, res) => {
       });
     }
 
-    // Check for duplicate booking
+    
     const existingBooking = await bookingsCollection.findOne({
       userEmail: booking.userEmail,
       serviceId: booking.serviceId,
@@ -346,14 +339,14 @@ app.post("/bookings", verifyJWT, async (req, res) => {
   }
 });
 
-// Cancel booking (Protected)
+
 app.delete("/bookings/:id", verifyJWT, async (req, res) => {
   try {
     await connectDB();
     const id = req.params.id;
     const email = req.query.email;
 
-    // Verify ownership
+  
     const booking = await bookingsCollection.findOne({
       _id: new ObjectId(id),
     });
@@ -372,9 +365,7 @@ app.delete("/bookings/:id", verifyJWT, async (req, res) => {
   }
 });
 
-// ============ REVIEWS ROUTES ============
 
-// Add review to service (Protected)
 app.post("/services/:id/review", verifyJWT, async (req, res) => {
   try {
     await connectDB();
@@ -382,7 +373,7 @@ app.post("/services/:id/review", verifyJWT, async (req, res) => {
     const { rating, comment } = req.body;
     const userEmail = req.decoded.email;
 
-    // Check if user has booked this service
+    
     const booking = await bookingsCollection.findOne({
       userEmail: userEmail,
       serviceId: serviceId,
@@ -396,7 +387,7 @@ app.post("/services/:id/review", verifyJWT, async (req, res) => {
       });
     }
 
-    // Check if user has already reviewed
+    
     const service = await servicesCollection.findOne({
       _id: new ObjectId(serviceId),
     });
@@ -419,14 +410,14 @@ app.post("/services/:id/review", verifyJWT, async (req, res) => {
       date: new Date(),
     };
 
-    // Update service with new review
+    
     const updatedService = await servicesCollection.findOneAndUpdate(
       { _id: new ObjectId(serviceId) },
       { $push: { reviews: review } },
       { returnDocument: "after" }
     );
 
-    // Calculate new average rating
+    
     if (updatedService.reviews && updatedService.reviews.length > 0) {
       const totalRating = updatedService.reviews.reduce(
         (sum, r) => sum + r.rating,
@@ -446,7 +437,7 @@ app.post("/services/:id/review", verifyJWT, async (req, res) => {
   }
 });
 
-// Get top-rated services
+
 app.get("/top-rated-services", async (req, res) => {
   try {
     await connectDB();
@@ -464,7 +455,7 @@ app.get("/top-rated-services", async (req, res) => {
   }
 });
 
-// Get categories
+
 app.get("/categories", async (req, res) => {
   try {
     await connectDB();
@@ -477,10 +468,10 @@ app.get("/categories", async (req, res) => {
   }
 });
 
-// Start server (Local development only)
+
 app.listen(port, () => {
   console.log(`HomeHero Server is running on port ${port}`);
 });
 
-// Export for Vercel
+
 module.exports = app;
